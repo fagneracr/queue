@@ -1,7 +1,5 @@
 package system
 
-import "github.com/google/uuid"
-
-func (e *Enqueted) Createq(id uuid.UUID) {
-	e.ident = append(e.ident, identify{ID: id, nextID: 1})
+func (e *Enqueted) Createq(id string) {
+	e.ident = append(e.ident, Identify{ID: id, NextID: 1})
 }

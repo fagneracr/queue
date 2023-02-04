@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	system.InitEnq()
+	system.InitQ()
 	e := echo.New()
 	e.POST("/qcreate", queue.CreateQ())
 	e.POST("/queue/:name", queue.Enquete())
