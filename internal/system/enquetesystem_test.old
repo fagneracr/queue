@@ -1,0 +1,109 @@
+package system
+
+import (
+	"os"
+	"testing"
+
+	"github.com/juju/fslock"
+)
+
+func TestInitQ(t *testing.T) {
+
+	os.Remove("./config")
+
+	tests := []struct {
+		name    string
+		wantErr bool
+	}{
+		{
+			name:    "teste init",
+			wantErr: false,
+		},
+		{
+			name:    "Error gz file",
+			wantErr: true,
+		},
+		{
+			name:    "Error trying read lock file",
+			wantErr: true,
+		},
+	}
+	var lock *fslock.Lock
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			switch tt.name {
+			case "Error gz file":
+				f, err := os.Create("./config/testeerror.gz")
+				if err != nil {
+					t.Fatal("Can not create a file error: " + err.Error())
+				}
+				f.WriteString("Test error")
+				f.Close()
+			case "Error trying read lock file":
+				f, err := os.Create("./config/testeerror.gz")
+				if err != nil {
+					t.Fatal("Can not create a file error: " + err.Error())
+				}
+				f.WriteString("Test error")
+				f.Close()
+				lock = fslock.New("./config/testeerror.gz")
+				lockErr := lock.TryLock()
+				if lockErr != nil {
+					t.Fatal("falied to acquire lock > " + lockErr.Error())
+					return
+				}
+			}
+			if err := InitQ(); (err != nil) != tt.wantErr {
+				t.Errorf("InitQ() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.name == "Error trying read lock file" || tt.name == "Error gz file" {
+				if tt.name == "Error trying read lock file" {
+					lock.Unlock()
+				}
+				os.Remove("./config/testeerror.gz")
+			}
+		})
+	}
+}
+
+func TestEnqueted_Save(t *testing.T) {
+	err := InitQ()
+	if err != nil {
+		t.Fatal("Can not init system: " + err.Error())
+	}
+
+	type args struct {
+		input interface{}
+	}
+	tests := []struct {
+		name    string
+		args    Identify
+		wantErr bool
+	}{
+		{
+			name:    "Test Error input interface",
+			args:    Identify{},
+			wantErr: true,
+		},
+		{
+			name: "Test OK",
+			args: Identify{
+				Name: "teste1",
+				MsgType: Msgtype{Mail: mail{
+					To:          "teste",
+					Cc:          "teste1",
+					MessageBody: "bla bla",
+				},
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := Save(tt.args); (err != nil) != tt.wantErr {
+				t.Errorf("Enqueted.Save() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}

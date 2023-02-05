@@ -10,110 +10,83 @@ import (
 	"log"
 	"os"
 	"path"
-	"sync"
 )
 
-type Enqueted struct {
-	ident []Identify
-	mutex sync.Mutex
-}
+// Enq- Init global variable
+var Enq *System
 
-type Identify struct {
-	ID         string  `json:"id,omitempty"`
-	Name       string  `json:"name"`
-	FileConfig string  `json:"fileconfig,omitempty"`
-	MsgType    Msgtype `json:"msgtype"`
-	Messages   []message
-	NextID     int64
-}
-type Msgtype struct {
-	Mail mail `json:"mail,omitempty"`
-	Mft  mft  `json:"mft,omitempty"`
-}
-
-type mail struct {
-	To          string `json:"to,,omitempty"`
-	Cc          string `json:"cc,,omitempty"`
-	Cco         string `json:"cco,,omitempty"`
-	MessageBody string `json:"messagebody,,omitempty"`
-}
-type mft struct {
-	Host     string
-	Port     int
-	User     string
-	Passwd   string // bcript
-	SenDir   string
-	Protocol string
-}
-type message struct {
-	Msg    interface{}
-	Header interface{}
-	ID     int64
-}
-
-var Enq *Enqueted
-
-func InitQ() {
-	// Change to parssing config on init.
-	Enq = new(Enqueted)
+/*InitQ - Init a queue system*/
+func InitQ() (*System, error) {
+	Enq = new(System)
 	cfgs, err := OSReadDir("./config")
 	if err != nil {
-		return
+		os.Mkdir("./config", os.ModePerm)
+		return nil, err
 	}
+	var errorout error
+	// find config already created queue
 	for _, cf := range cfgs {
-		out, _ := os.Open(path.Join("./config", cf))
+		out, err := os.Open(path.Join("./config", cf))
+		if err != nil {
+			errorout = errors.Join(errorout, errors.New("File is broken: "+cf+" with error: "+err.Error()))
+			continue
+		}
 		r, err := gzip.NewReader(out)
 		if err != nil {
+			errorout = errors.Join(errorout, errors.New("This file can not be decompressed: "+err.Error()))
+			continue
 
 		}
 		s, _ := ioutil.ReadAll(r)
-
 		reader := bytes.NewReader(s)
-		config := decodeFile(reader)
-		Enq.ident = append(Enq.ident, config)
-	}
-
-}
-
-func (e *Enqueted) Save(input interface{}) error {
-	if _, err := input.(Identify); !err {
-		return errors.New("Can not convert received input")
-
-	}
-	in := input.(Identify)
-	if e.mutex.TryLock() {
-		defer e.mutex.Unlock()
-		for _, i := range e.ident {
-			if i.Name == in.Name {
-				return errors.New("Configuration name alred exists")
-			}
+		config, err := decodeFile(reader)
+		if err != nil {
+			errorout = errors.Join(errorout, errors.New("Can not decode the file: "+err.Error()))
+			continue
 		}
-		e.ident = append(e.ident, in)
-		saveFileGobAndGz(in)
-
-	} else {
-		return errors.New("Try again later, server busy")
+		_ = config
+		//Enq.config = append(Enq.ident, config)
 	}
+	return Enq, errorout
 
-	return nil
-	// Message add the id for file queue, after broken get message in order.
-	// Save file and return uuid or error
 }
 
-func (e *Enqueted) Reload() {
+// /*Save - Create a new queue in sysstem*/
+// func Save(in Identify) error {
+
+// 	if Enq.mutex.TryLock() {
+// 		defer Enq.mutex.Unlock()
+// 		for _, i := range Enq.ident {
+// 			if i.Name == in.Name {
+// 				return errors.New("Configuration name alred exists")
+// 			}
+// 		}
+// 		Enq.ident = append(Enq.ident, in)
+// 		saveFileGobAndGz(in)
+
+// 	} else {
+// 		return errors.New("Try again later, server busy")
+// 	}
+
+// 	return nil
+// 	// Message add the id for file queue, after broken get message in order.
+// 	// Save file and return uuid or error
+// }
+
+func (e *System) Reload() {
 	// zero e
 	// init again
 }
 
-func (e *Enqueted) Enquete(msg interface{}, header interface{}, name string) {
+func (e *System) Enquete(msg interface{}, header interface{}, name string) {
 
-	for _, i := range e.ident {
-		if i.Name == name {
-			i.Messages = append(i.Messages, message{Msg: msg, Header: header, ID: i.NextID})
-			i.NextID++
-		}
+	// for _, i := range e.ident {
+	// 	if i.Name == name {
+	// 		i.Messages = append(i.Messages, message{Msg: msg, Header: header, ID: i.NextID})
+	// 		i.NextID++
+	// 	}
 
-	}
+	// }
 
 }
 
@@ -151,10 +124,10 @@ func saveFileGobAndGz(input Identify) {
 
 }
 
-func decodeFile(todecode io.Reader) Identify {
+func decodeFile(todecode io.Reader) (Identify, error) {
 	var n2 Identify
 	if err := gob.NewDecoder(todecode).Decode(&n2); err != nil {
-		panic(n2)
+		return n2, err
 	}
-	return n2
+	return n2, nil
 }
