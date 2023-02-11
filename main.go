@@ -5,24 +5,42 @@ import (
 	"go-queue/internal/queue"
 	"go-queue/internal/system"
 	"net/http"
+	"path"
+	"strconv"
 
 	"github.com/labstack/echo/v4"
 )
 
 func main() {
-	q, err := system.InitQ()
-	if err != nil {
-		fmt.Println("Error trying initialize system: " + err.Error())
-	}
 
-	err = q.Createq(system.ConfigQueue{
-		Name:       "fila1",
-		Persistent: true,
-		Variable: []system.Variable{{Key: "teste",
-			Value: "teste1"}},
+	q, err := system.InitQ(system.Conf{
+		Directory: path.Join("/home/fribeiro/fagner/qsys"),
 	})
 	if err != nil {
 		fmt.Println("Error trying initialize system: " + err.Error())
+	}
+	for x := 0; x < 10; x++ {
+		name := "fila" + strconv.Itoa(x)
+		if !q.Exists(name) {
+			err = q.Createq(system.ConfigQueue{
+				Name:       name,
+				Persistent: true,
+				Variable: []system.Variable{{Key: "teste",
+					Value: "teste1"}},
+			})
+			if err != nil {
+				fmt.Println("Error trying initialize system: " + err.Error())
+			}
+			fmt.Println("Queue created: " + name)
+		}
+	}
+
+	for x := 0; x < 10; x++ {
+		name := "fila" + strconv.Itoa(x)
+		err := q.DeleteQ(name)
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
 
 	e := echo.New()

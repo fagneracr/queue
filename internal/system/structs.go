@@ -7,8 +7,9 @@ import (
 	"github.com/google/uuid"
 )
 
+/*System - Main struct for system*/
 type System struct {
-	config     interface{}
+	config     Conf
 	Queue      []*queueConf
 	Dispatcher []interface{}
 	mutex      sync.Mutex

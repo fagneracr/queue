@@ -6,46 +6,74 @@ import (
 	"encoding/gob"
 	"errors"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"path"
 )
 
-// Enq- Init global variable
+// Enq - Init global variable
 var Enq *System
 
-/*InitQ - Init a queue system*/
-func InitQ() (*System, error) {
-	Enq = new(System)
-	cfgs, err := OSReadDir("./config")
-	if err != nil {
-		os.Mkdir("./config", os.ModePerm)
-		return nil, err
-	}
-	var errorout error
-	// find config already created queue
-	for _, cf := range cfgs {
-		out, err := os.Open(path.Join("./config", cf))
-		if err != nil {
-			errorout = errors.Join(errorout, errors.New("File is broken: "+cf+" with error: "+err.Error()))
-			continue
-		}
-		r, err := gzip.NewReader(out)
-		if err != nil {
-			errorout = errors.Join(errorout, errors.New("This file can not be decompressed: "+err.Error()))
-			continue
+// Conf - Parameter to Initialize system
+type Conf struct {
+	Directory string
+	//max size in direcoty.
+	//log directory
 
+}
+
+/*
+InitQ initializes a new System and reads the configuration files for the queues.
+If the config directory does not exist, it is created. If there are any errors
+in reading or decoding the configuration files, they are returned as a single error.
+
+Returns:
+
+	*System: A pointer to the new System object that was created.
+	error: An error object that may contain any errors that occurred while reading
+	       or decoding the configuration files.
+
+Example:
+
+	sys, err := InitQ()
+	if err != nil {
+	    fmt.Printf("Error initializing System: %v\n", err)
+	    return
+	}
+
+Use the sys object to perform queue operations.
+*/
+func InitQ(config Conf) (*System, error) {
+	Enq = new(System)
+	Enq.config = config
+
+	//Read queues config
+	files, err := OSReadDir(path.Join(config.Directory, "/config"))
+	if err != nil {
+		// New queue system, nor exists
+		err = os.Mkdir(path.Join(config.Directory, "/config"), os.ModePerm)
+		Enq.config = config
+		return Enq, err
+	}
+
+	var errorout error
+	configdir := path.Join(path.Join(config.Directory, "/config"))
+	// find config already created queue
+	for _, file := range files {
+		out, err := os.Open(path.Join(configdir, file))
+		if err != nil {
+			errorout = errors.Join(errorout, errors.New("File is broken: "+file+" with error: "+err.Error()))
+			continue
 		}
-		s, _ := ioutil.ReadAll(r)
-		reader := bytes.NewReader(s)
-		config, err := decodeFile(reader)
+		filecontent, err := io.ReadAll(out)
+		reader := bytes.NewReader(filecontent)
+		q, err := decodeFile(reader)
 		if err != nil {
 			errorout = errors.Join(errorout, errors.New("Can not decode the file: "+err.Error()))
 			continue
 		}
-		_ = config
-		//Enq.config = append(Enq.ident, config)
+		// Append a queue config to system.
+		Enq.Queue = append(Enq.Queue, &q)
 	}
 	return Enq, errorout
 
@@ -124,8 +152,8 @@ func saveFileGobAndGz(input Identify) {
 
 }
 
-func decodeFile(todecode io.Reader) (Identify, error) {
-	var n2 Identify
+func decodeFile(todecode io.Reader) (queueConf, error) {
+	var n2 queueConf
 	if err := gob.NewDecoder(todecode).Decode(&n2); err != nil {
 		return n2, err
 	}
