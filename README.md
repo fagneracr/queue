@@ -1,5 +1,12 @@
 ![GitHub go.mod Go version (branch)](https://img.shields.io/github/go-mod/go-version/fagneracr/queue/master)
 
+# Go-Q
+
+Just a queue system in golang, managing tasks or requests by organizing them in a first-in, first-out (FIFO) order.
+
+
+
+
 ## CreateQ
 
 The `Createq` function creates a new queue in the `System`. It takes a `ConfigQueue` struct as input, which contains parameters for configuring the new queue. The function performs the following steps:
