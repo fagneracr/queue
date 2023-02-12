@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+option go_package = "go-queue/internal/grpcserve";
+
+message Varables{
+    string key =2;
+    string value = 1;
+}
+
+message QueueMSG {
+  string name = 1;
+  string persistent = 2;
+  int64 maxsize = 3;
+  int32 ttl = 4;
+  repeated Varables variables =5;
+}
+
+message NewQRequest {}
+message NewQResponse { string msg = 1; }
+
+service QService {
+  rpc NewQ(QueueMSG) returns (NewQResponse) {}
+}

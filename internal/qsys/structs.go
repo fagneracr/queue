@@ -1,12 +1,12 @@
-package system
+package qsys
 
 import (
-	"go-queue/internal/system/queue"
+	"go-queue/internal/qsys/queue"
 	"sync"
 )
 
 /*System - Main struct for system*/
-type System struct {
+type QSys struct {
 	config     Conf
 	queue      *queue.Queue
 	dispatcher []interface{}

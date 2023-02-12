@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
+	"go-queue/internal/grpcserve"
+	"go-queue/internal/qsys"
 	"go-queue/internal/queue"
-	"go-queue/internal/system"
 	"net/http"
 	"path"
 	"strconv"
@@ -13,7 +14,7 @@ import (
 
 func main() {
 
-	q, err := system.InitQ(system.Conf{
+	err := qsys.InitQ(qsys.Conf{
 		Directory: path.Join("/home/fribeiro/fagner/qsys"),
 	})
 	if err != nil {
@@ -21,11 +22,11 @@ func main() {
 	}
 	for x := 0; x < 2; x++ {
 		name := "fila" + strconv.Itoa(x)
-		if !q.ExistsQ(name) {
-			err = q.CreateQ(system.ConfigQueue{
+		if !qsys.ExistsQ(name) {
+			err = qsys.CreateQ(qsys.ConfigQueue{
 				Name:       name,
 				Persistent: true,
-				Variable: []system.Variable{{Key: "teste",
+				Variable: []qsys.Variable{{Key: "teste",
 					Value: "teste1"}},
 			})
 			if err != nil {
@@ -34,13 +35,14 @@ func main() {
 			fmt.Println("Queue created: " + name)
 		}
 	}
-	listq := q.ListQ()
+	listq := qsys.ListQ()
 	fmt.Println(listq)
-	err = q.DeleteQ("fila0")
+	err = qsys.DeleteQ("fila0")
 	if err != nil {
 		fmt.Println(err)
 	}
-
+	//Initiate Grpc Server
+	go grpcserve.InitServer()
 	e := echo.New()
 	//e.POST("/qcreate", queue.CreateQ())
 	e.POST("/queue/:name", queue.Enquete())

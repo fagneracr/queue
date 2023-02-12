@@ -1,11 +1,11 @@
-package system
+package qsys
 
 import (
 	"bytes"
 	"compress/gzip"
 	"encoding/gob"
 	"errors"
-	"go-queue/internal/system/queue"
+	"go-queue/internal/qsys/queue"
 	"io"
 	"log"
 	"os"
@@ -14,7 +14,7 @@ import (
 )
 
 // Enq - Init global variable
-var Enq *System
+var Enq *QSys
 
 // Conf - Parameter to Initialize system
 type Conf struct {
@@ -45,8 +45,8 @@ Example:
 
 Use the sys object to perform queue operations.
 */
-func InitQ(config Conf) (*System, error) {
-	Enq = new(System)
+func InitQ(config Conf) error {
+	Enq = new(QSys)
 	Enq.config = config
 	Enq.queue = new(queue.Queue)
 
@@ -56,7 +56,7 @@ func InitQ(config Conf) (*System, error) {
 		// New queue system, nor exists
 		err = os.Mkdir(path.Join(config.Directory, "/config"), os.ModePerm)
 		Enq.config = config
-		return Enq, err
+		return err
 	}
 
 	var errorout error
@@ -77,7 +77,7 @@ func InitQ(config Conf) (*System, error) {
 		}
 		Enq.queue.Append(&q)
 	}
-	return Enq, errorout
+	return errorout
 
 }
 
@@ -97,7 +97,7 @@ func InitQ(config Conf) (*System, error) {
 //	if err != nil {
 //	  fmt.Println("Error creating queue: ", err)
 //	}
-func (s *System) CreateQ(in ConfigQueue) (err error) {
+func CreateQ(in ConfigQueue) (err error) {
 	var toCreaate queue.QueueConf
 	toCreaate.Name = in.Name
 	//corrigir
@@ -109,7 +109,7 @@ func (s *System) CreateQ(in ConfigQueue) (err error) {
 		v.Value = i.Key
 		toCreaate.Variable = append(toCreaate.Variable, v)
 	}
-	err = s.queue.Createq(&toCreaate, s.config.Directory)
+	err = Enq.queue.Createq(&toCreaate, Enq.config.Directory)
 	return err
 
 }
@@ -117,23 +117,23 @@ func (s *System) CreateQ(in ConfigQueue) (err error) {
 // DeleteQ deletes a queue with the given `name` from the `System`.
 // Returns an error if the queue does not exist or if there was an error deleting
 // the queue's struct and config files.
-func (s *System) DeleteQ(name string) (err error) {
-	err = s.queue.DeleteQ(name, s.config.Directory)
+func DeleteQ(name string) (err error) {
+	err = Enq.queue.DeleteQ(name, Enq.config.Directory)
 	return err
 }
 
 // ExistsQ checks if a queue with the given `name` exists in the `System`.
 // Returns true if the queue exists, false otherwise.
-func (s *System) ExistsQ(name string) bool {
-	return s.queue.Exists(name)
+func ExistsQ(name string) bool {
+	return Enq.queue.Exists(name)
 }
 
 // ListQ returns a slice of `ConfigQueue` structs representing the configuration
 // of the named queues or all queues in the `System`. If one or more queue names
 // are provided as arguments, only those queues will be included in the output.
 // Otherwise, all queues in the `System` will be included.
-func (s *System) ListQ(names ...string) (confq []ConfigQueue) {
-
+func ListQ(names ...string) (confq []ConfigQueue) {
+	s := Enq
 	i := s.queue.ListQ(names...)
 	for _, v := range i {
 		var variable []Variable
