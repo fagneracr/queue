@@ -9,6 +9,7 @@ import (
 	"strings"
 )
 
+// Append a new Queue
 func (e *Queue) Append(conf *QueueConf) {
 	e.queue = append(e.queue, conf)
 }
@@ -18,11 +19,8 @@ func (e *Queue) Append(conf *QueueConf) {
 // It creates the queue structure on the file system and saves the configuration in a file.
 // It adds the new queue to the system and returns nil if the operation is successful.
 // If the name parameter is empty, it returns an error.
-func (e *Queue) Createq(qnew interface{}, dir string) error {
-	if _, ok := qnew.(Queue); !ok {
-		return errors.New("does not working conversion")
-	}
-	newq := qnew.(QueueConf)
+func (e *Queue) Createq(newq *QueueConf, dir string) error {
+
 	if newq.Name == "" {
 		return errors.New("Name can not be null")
 	}
@@ -31,23 +29,8 @@ func (e *Queue) Createq(qnew interface{}, dir string) error {
 			return errors.New("Queue already exists")
 		}
 	}
-	// var q queueConf
-	// q.Name = strings.ToLower(newq.Name)
-	// q.maxSize = newq.MaxSize
-	// q.ID = uuid.New()
-	// q.persistent = newq.Persistent
-	// q.NextID = 1
-	// q.createDate = time.Now()
-	// q.TTL = time.Duration(time.Duration(newq.TTL) * time.Minute)
-	// q.mutex = sync.Mutex{}
-	// for _, v := range newq.Variable {
-	// 	var variable Variable
-	// 	variable.Key = v.Key
-	// 	variable.Value = v.Value
-	// 	q.Variable = append(q.Variable, variable)
-	// }
 	//save config
-	err := saveInFile(&newq, dir)
+	err := saveInFile(newq, dir)
 	if err != nil {
 		return err
 	}
@@ -59,7 +42,7 @@ func (e *Queue) Createq(qnew interface{}, dir string) error {
 	//Add config in system
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
-	e.queue = append(e.queue, &newq)
+	e.queue = append(e.queue, newq)
 	return nil
 
 }

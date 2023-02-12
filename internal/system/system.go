@@ -10,6 +10,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"time"
 )
 
 // Enq - Init global variable
@@ -50,7 +51,7 @@ func InitQ(config Conf) (*System, error) {
 	Enq.queue = new(queue.Queue)
 
 	//Read queues config
-	files, err := OSReadDir(path.Join(config.Directory, "/config"))
+	files, err := oSReadDir(path.Join(config.Directory, "/config"))
 	if err != nil {
 		// New queue system, nor exists
 		err = os.Mkdir(path.Join(config.Directory, "/config"), os.ModePerm)
@@ -74,52 +75,87 @@ func InitQ(config Conf) (*System, error) {
 			errorout = errors.Join(errorout, errors.New("Can not decode the file: "+err.Error()))
 			continue
 		}
-		// Append a queue config to system.
 		Enq.queue.Append(&q)
 	}
 	return Enq, errorout
 
 }
 
+// CreateQ creates a new queue with the provided configuration in the System.
+//
+// Parameters:
+// - in: ConfigQueue - configuration of the queue to be created.
+//
+// Returns:
+// - error - an error if the creation of the queue fails.
+//
+// Example:
+//
+//	sys := &System{}
+//	config := ConfigQueue{Name: "myQueue", TTL: 30, Persistent: true, Variable: []Variable{{Key: "key1", Value: "value1"}, {Key: "key2", Value: "value2"}}}
+//	err := sys.CreateQ(config)
+//	if err != nil {
+//	  fmt.Println("Error creating queue: ", err)
+//	}
 func (s *System) CreateQ(in ConfigQueue) (err error) {
-	// We have to parse struct to internal, and send to create
-	err = s.queue.Createq(in, s.config.Directory)
+	var toCreaate queue.QueueConf
+	toCreaate.Name = in.Name
+	//corrigir
+	toCreaate.TTL = time.Duration(in.TTL)
+	toCreaate.Persistent = in.Persistent
+	for _, i := range in.Variable {
+		var v queue.Variable
+		v.Key = i.Key
+		v.Value = i.Key
+		toCreaate.Variable = append(toCreaate.Variable, v)
+	}
+	err = s.queue.Createq(&toCreaate, s.config.Directory)
 	return err
 
 }
 
+// DeleteQ deletes a queue with the given `name` from the `System`.
+// Returns an error if the queue does not exist or if there was an error deleting
+// the queue's struct and config files.
 func (s *System) DeleteQ(name string) (err error) {
 	err = s.queue.DeleteQ(name, s.config.Directory)
 	return err
 }
 
+// ExistsQ checks if a queue with the given `name` exists in the `System`.
+// Returns true if the queue exists, false otherwise.
 func (s *System) ExistsQ(name string) bool {
 	return s.queue.Exists(name)
 }
 
-// /*Save - Create a new queue in sysstem*/
-// func Save(in Identify) error {
+// ListQ returns a slice of `ConfigQueue` structs representing the configuration
+// of the named queues or all queues in the `System`. If one or more queue names
+// are provided as arguments, only those queues will be included in the output.
+// Otherwise, all queues in the `System` will be included.
+func (s *System) ListQ(names ...string) (confq []ConfigQueue) {
 
-// 	if Enq.mutex.TryLock() {
-// 		defer Enq.mutex.Unlock()
-// 		for _, i := range Enq.ident {
-// 			if i.Name == in.Name {
-// 				return errors.New("Configuration name alred exists")
-// 			}
-// 		}
-// 		Enq.ident = append(Enq.ident, in)
-// 		saveFileGobAndGz(in)
+	i := s.queue.ListQ(names...)
+	for _, v := range i {
+		var variable []Variable
+		for _, k := range v.Variable {
+			variable = append(variable, Variable{
+				Key:   k.Key,
+				Value: k.Value,
+			})
+		}
+		confq = append(confq, ConfigQueue{
+			Name:       v.Name,
+			Persistent: v.Persistent,
+			TTL:        int(v.TTL),
+			MaxSize:    0,
+			Variable:   variable,
+		})
+	}
+	return confq
 
-// 	} else {
-// 		return errors.New("Try again later, server busy")
-// 	}
+}
 
-// 	return nil
-// 	// Message add the id for file queue, after broken get message in order.
-// 	// Save file and return uuid or error
-// }
-
-func OSReadDir(root string) ([]string, error) {
+func oSReadDir(root string) ([]string, error) {
 	var files []string
 	f, err := os.Open(root)
 	if err != nil {

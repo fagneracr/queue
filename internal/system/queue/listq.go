@@ -30,7 +30,7 @@ type Variable struct {
 type QueueConf struct {
 	Name       string
 	ID         uuid.UUID
-	persistent bool
+	Persistent bool
 	TTL        time.Duration
 	maxSize    int64
 	createDate time.Time
