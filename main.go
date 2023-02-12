@@ -34,6 +34,8 @@ func main() {
 			fmt.Println("Queue created: " + name)
 		}
 	}
+	listq := q.ListQ()
+	fmt.Println(listq)
 	err = q.DeleteQ("fila0")
 	if err != nil {
 		fmt.Println(err)
@@ -42,6 +44,7 @@ func main() {
 	e := echo.New()
 	//e.POST("/qcreate", queue.CreateQ())
 	e.POST("/queue/:name", queue.Enquete())
+
 	e.Logger.Fatal(e.Start(":8080"))
 }
 func getUser(c echo.Context) error {
