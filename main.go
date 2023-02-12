@@ -19,10 +19,10 @@ func main() {
 	if err != nil {
 		fmt.Println("Error trying initialize system: " + err.Error())
 	}
-	for x := 0; x < 10; x++ {
+	for x := 0; x < 2; x++ {
 		name := "fila" + strconv.Itoa(x)
-		if !q.Exists(name) {
-			err = q.Createq(system.ConfigQueue{
+		if !q.ExistsQ(name) {
+			err = q.CreateQ(system.ConfigQueue{
 				Name:       name,
 				Persistent: true,
 				Variable: []system.Variable{{Key: "teste",
@@ -34,13 +34,9 @@ func main() {
 			fmt.Println("Queue created: " + name)
 		}
 	}
-
-	for x := 0; x < 10; x++ {
-		name := "fila" + strconv.Itoa(x)
-		err := q.DeleteQ(name)
-		if err != nil {
-			fmt.Println(err)
-		}
+	err = q.DeleteQ("fila0")
+	if err != nil {
+		fmt.Println(err)
 	}
 
 	e := echo.New()

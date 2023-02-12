@@ -1,17 +1,15 @@
 package system
 
 import (
+	"go-queue/internal/system/queue"
 	"sync"
-	"time"
-
-	"github.com/google/uuid"
 )
 
 /*System - Main struct for system*/
 type System struct {
 	config     Conf
-	Queue      []*queueConf
-	Dispatcher []interface{}
+	queue      *queue.Queue
+	dispatcher []interface{}
 	mutex      sync.Mutex
 }
 
@@ -28,20 +26,6 @@ type ConfigQueue struct {
 type Variable struct {
 	Key   string
 	Value string
-}
-
-/*queue internal configuration*/
-type queueConf struct {
-	Name       string
-	ID         uuid.UUID
-	persistent bool
-	TTL        time.Duration
-	maxSize    int64
-	createDate time.Time
-	NextID     int64
-	Variable   []Variable
-	Messages   []*message
-	mutex      sync.Mutex
 }
 
 type Identify struct {

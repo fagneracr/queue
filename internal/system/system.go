@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"encoding/gob"
 	"errors"
+	"go-queue/internal/system/queue"
 	"io"
 	"log"
 	"os"
@@ -46,6 +47,7 @@ Use the sys object to perform queue operations.
 func InitQ(config Conf) (*System, error) {
 	Enq = new(System)
 	Enq.config = config
+	Enq.queue = new(queue.Queue)
 
 	//Read queues config
 	files, err := OSReadDir(path.Join(config.Directory, "/config"))
@@ -73,10 +75,26 @@ func InitQ(config Conf) (*System, error) {
 			continue
 		}
 		// Append a queue config to system.
-		Enq.Queue = append(Enq.Queue, &q)
+		Enq.queue.Append(&q)
 	}
 	return Enq, errorout
 
+}
+
+func (s *System) CreateQ(in ConfigQueue) (err error) {
+	// We have to parse struct to internal, and send to create
+	err = s.queue.Createq(in, s.config.Directory)
+	return err
+
+}
+
+func (s *System) DeleteQ(name string) (err error) {
+	err = s.queue.DeleteQ(name, s.config.Directory)
+	return err
+}
+
+func (s *System) ExistsQ(name string) bool {
+	return s.queue.Exists(name)
 }
 
 // /*Save - Create a new queue in sysstem*/
@@ -100,23 +118,6 @@ func InitQ(config Conf) (*System, error) {
 // 	// Message add the id for file queue, after broken get message in order.
 // 	// Save file and return uuid or error
 // }
-
-func (e *System) Reload() {
-	// zero e
-	// init again
-}
-
-func (e *System) Enquete(msg interface{}, header interface{}, name string) {
-
-	// for _, i := range e.ident {
-	// 	if i.Name == name {
-	// 		i.Messages = append(i.Messages, message{Msg: msg, Header: header, ID: i.NextID})
-	// 		i.NextID++
-	// 	}
-
-	// }
-
-}
 
 func OSReadDir(root string) ([]string, error) {
 	var files []string
@@ -152,8 +153,8 @@ func saveFileGobAndGz(input Identify) {
 
 }
 
-func decodeFile(todecode io.Reader) (queueConf, error) {
-	var n2 queueConf
+func decodeFile(todecode io.Reader) (queue.QueueConf, error) {
+	var n2 queue.QueueConf
 	if err := gob.NewDecoder(todecode).Decode(&n2); err != nil {
 		return n2, err
 	}

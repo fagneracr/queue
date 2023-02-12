@@ -1,4 +1,4 @@
-package system
+package queue
 
 import (
 	"errors"
@@ -12,7 +12,7 @@ var pos int
 // DeleteQ deletes a queue with the given `name` from the `System`.
 // Returns an error if the queue does not exist or if there was an error deleting
 // the queue's struct and config files.
-func (e *System) DeleteQ(name string) (err error) {
+func (e *Queue) DeleteQ(name string, dir string) (err error) {
 	// Check if the queue with the given `name` exists in the `System`.
 	if e.Exists(name) {
 		// If the queue exists, obtain a lock on the `System`'s mutex to ensure
@@ -20,16 +20,16 @@ func (e *System) DeleteQ(name string) (err error) {
 		e.mutex.Lock()
 		defer e.mutex.Unlock()
 		// Iterate over each `Queue` in the `System`.
-		for pos, q := range e.Queue {
+		for pos, q := range e.queue {
 			if q.Name == strings.ToLower(name) {
 				// If the current `Queue`'s name matches the provided `name`, delete
 				// the struct and config files for the `Queue` and remove the `Queue`
 				// from the `System`'s `Queue` slice.
-				err = deleteStructureQ(e.config.Directory+"/", q.ID.String())
+				err = deleteStructureQ(dir+"/", q.ID.String())
 				if err != nil {
 					return err
 				}
-				e.Queue = append(e.Queue[:pos], e.Queue[pos+1:]...)
+				e.queue = append(e.queue[:pos], e.queue[pos+1:]...)
 				if pos > 0 {
 					pos = pos - 1
 				}
